@@ -11,3 +11,4 @@ spacy
 textstat
 nrclex
 newspaper3k
+lxml[html_clean]
