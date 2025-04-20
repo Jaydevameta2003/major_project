@@ -2,9 +2,9 @@
 
 from flask import Flask
 from flask_cors import CORS
-from cohere_test import register_test_routes
+from cohere_content import register_test_routes
 from cohere_link import register_link_routes
-from twitter import register_twitter_routes
+from cohere_twitter import register_twitter_routes
 
 app = Flask(__name__)
 CORS(app)
