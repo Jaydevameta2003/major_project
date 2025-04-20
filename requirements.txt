@@ -10,3 +10,4 @@ langdetect
 spacy
 textstat
 nrclex
+newspaper3k
