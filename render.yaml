@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: cohere-ai-backend
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn app:app
+    envVars:
+      - key: COHERE_API_KEY
+        value: your-api-key
