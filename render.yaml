@@ -6,4 +6,4 @@ services:
     startCommand: gunicorn app:app
     envVars:
       - key: COHERE_API_KEY
-        value: your-api-key
+        value: 'RpA11TuVr7Glm5CzBTMZeXv6Zn6wzK0R5QhzxxQc'
