@@ -1,19 +1,13 @@
 from flask import request, jsonify
 from textblob import TextBlob
-from langdetect import detect, LangDetectException
+from langdetect import detect
 import spacy
-import subprocess
 from textstat import flesch_reading_ease
 from nrclex import NRCLex
 import cohere
 
 co = cohere.Client('RpA11TuVr7Glm5CzBTMZeXv6Zn6wzK0R5QhzxxQc')
-
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
-    nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_sm")
 
 def register_test_routes(app):
     @app.route('/analyze', methods=['POST'])
@@ -39,11 +33,8 @@ def register_test_routes(app):
         except:
             polarity, subjectivity, keywords = 0.0, 0.0, []
 
-        try:
-            doc = nlp(user_text)
-            entities = list(set((ent.text, ent.label_) for ent in doc.ents))
-        except:
-            entities = []
+        doc = nlp(user_text)
+        entities = list(set((ent.text, ent.label_) for ent in doc.ents))
 
         try:
             emotion_obj = NRCLex(user_text)
@@ -54,7 +45,7 @@ def register_test_routes(app):
 
         try:
             language = detect(user_text)
-        except LangDetectException:
+        except:
             language = "unknown"
 
         word_count = len(user_text.split())
