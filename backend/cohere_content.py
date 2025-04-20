@@ -4,6 +4,7 @@ import cohere
 from textblob import TextBlob
 from langdetect import detect
 import spacy
+import subprocess
 from textstat import flesch_reading_ease
 from nrclex import NRCLex
 
@@ -12,7 +13,13 @@ CORS(app)
 
 # Cohere API key (replace with your own)
 co = cohere.Client('RpA11TuVr7Glm5CzBTMZeXv6Zn6wzK0R5QhzxxQc')
-nlp = spacy.load("en_core_web_sm")  # Load spaCy model for NER
+
+# Attempt to load the spaCy model, and install it if missing
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    nlp = spacy.load("en_core_web_sm")
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -32,7 +39,7 @@ def analyze():
     polarity = blob.sentiment.polarity
     subjectivity = blob.sentiment.subjectivity
 
-    # 3. Keyword Extraction (naive method using noun phrases from TextBlob)
+    # 3. Keyword Extraction
     keywords = list(set(blob.noun_phrases))
 
     # 4. Named Entity Recognition (NER using spaCy)
@@ -44,7 +51,7 @@ def analyze():
     emotions = emotion_obj.raw_emotion_scores
     dominant_emotion = max(emotions, key=emotions.get) if emotions else "neutral"
 
-    # 6. Language Detection (using langdetect library)
+    # 6. Language Detection
     try:
         language = detect(user_text)
     except:
@@ -53,12 +60,11 @@ def analyze():
     # 7. Word Count
     word_count = len(user_text.split())
 
-    # 8. Readability Score (using Flesch Reading Ease)
+    # 8. Readability Score
     readability_score = flesch_reading_ease(user_text)
 
-    # 9. Toxicity Detection (basic check using sentiment polarity)
-    # This could be replaced with more advanced methods like Detoxify or Perspective API
-    toxicity_score = max(0.0, -1 * polarity)  # if sentiment is negative, assume slightly toxic
+    # 9. Toxicity Score (based on polarity)
+    toxicity_score = max(0.0, -1 * polarity)
 
     return jsonify({
         'summary': summary,
