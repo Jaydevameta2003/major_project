@@ -9,3 +9,4 @@ textblob
 langdetect
 spacy
 textstat
+nrclex
