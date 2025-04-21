@@ -3,18 +3,23 @@ from flask_cors import CORS
 import tweepy
 from textblob import TextBlob
 import spacy
-from langdetect import detect
+from langdetect import detect, LangDetectException
 from nrclex import NRCLex
 import textstat
 import time
+import os
 
-app = Flask(__name__)  # ✅ required for gunicorn
+app = Flask(__name__)
 CORS(app)
 
-nlp = spacy.load("en_core_web_sm")
+# ✅ Load spaCy model safely
+try:
+    nlp = spacy.load("en_core_web_sm")
+except Exception as e:
+    raise RuntimeError("Failed to load spaCy model. Make sure 'en_core_web_sm' is installed.") from e
 
-# Replace with your actual bearer token
-bearer_token = 'YOUR_TWITTER_BEARER_TOKEN'
+# 🔐 Twitter Bearer Token (from env or hardcoded fallback)
+bearer_token = os.getenv("TWITTER_BEARER_TOKEN", "YOUR_TWITTER_BEARER_TOKEN")
 client = tweepy.Client(bearer_token=bearer_token)
 cache = {}
 
@@ -28,7 +33,7 @@ def get_user_tweets():
     current_time = time.time()
     cached_data = cache.get(username)
 
-    # Cache valid for 15 minutes (900 seconds)
+    # Return cached data if not older than 15 minutes
     if cached_data and current_time - cached_data[0] < 900:
         return jsonify({'username': username, 'tweets': cached_data[1]})
 
@@ -51,25 +56,38 @@ def get_user_tweets():
         return jsonify({'error': str(e)}), 500
 
 def analyze_tweet(text):
-    blob = TextBlob(text)
-    polarity = blob.sentiment.polarity
-    subjectivity = blob.sentiment.subjectivity
-    keywords = list(set(blob.noun_phrases))
+    try:
+        blob = TextBlob(text)
+        polarity = blob.sentiment.polarity
+        subjectivity = blob.sentiment.subjectivity
+        keywords = list(set(blob.noun_phrases))
+    except Exception:
+        polarity, subjectivity, keywords = 0.0, 0.0, []
 
-    doc = nlp(text)
-    entities = list(set(ent.text for ent in doc.ents))
+    try:
+        doc = nlp(text)
+        entities = list(set(ent.text for ent in doc.ents))
+    except:
+        entities = []
 
-    emotion_obj = NRCLex(text)
-    emotions = emotion_obj.raw_emotion_scores
-    dominant_emotion = max(emotions, key=emotions.get) if emotions else "neutral"
+    try:
+        emotion_obj = NRCLex(text)
+        emotions = emotion_obj.raw_emotion_scores
+        dominant_emotion = max(emotions, key=emotions.get) if emotions else "neutral"
+    except:
+        dominant_emotion = "neutral"
 
     try:
         language = detect(text)
-    except:
+    except LangDetectException:
         language = "unknown"
 
     word_count = len(text.split())
-    readability_score = textstat.flesch_reading_ease(text)
+    try:
+        readability_score = textstat.flesch_reading_ease(text)
+    except:
+        readability_score = 0.0
+
     toxicity_score = max(0.0, -1 * polarity)
     summary = ' '.join(text.split()[:20]) + ('...' if word_count > 20 else '')
 
@@ -86,3 +104,7 @@ def analyze_tweet(text):
         'readability_score': readability_score,
         'toxicity_score': round(toxicity_score, 2)
     }
+
+# ✅ For local testing
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5002, debug=True)
