@@ -1,11 +1,21 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import nltk
 from textblob import TextBlob
 from langdetect import detect
 import spacy
 from textstat import flesch_reading_ease
 from nrclex import NRCLex
 import cohere
+import os
+
+# ✅ Download required corpora (safe to call repeatedly)
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('brown')
+nltk.download('wordnet')
+nltk.download('movie_reviews')
+nltk.download('stopwords')
 
 app = Flask(__name__)
 CORS(app)
@@ -36,8 +46,10 @@ def analyze():
     polarity = blob.sentiment.polarity
     subjectivity = blob.sentiment.subjectivity
     keywords = list(set(blob.noun_phrases))
+
     doc = nlp(user_text)
     entities = list(set((ent.text, ent.label_) for ent in doc.ents))
+
     emotion_obj = NRCLex(user_text)
     emotions = emotion_obj.raw_emotion_scores
     dominant_emotion = max(emotions, key=emotions.get) if emotions else "neutral"
@@ -65,6 +77,5 @@ def analyze():
     })
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
