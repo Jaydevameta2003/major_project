@@ -11,8 +11,12 @@ import cohere
 app = Flask(__name__)
 CORS(app)
 
-co = cohere.Client('RpA11TuVr7Glm5CzBTMZeXv6Zn6wzK0R5QhzxxQc')
 nlp = spacy.load("en_core_web_sm")
+co = cohere.Client('RpA11TuVr7Glm5CzBTMZeXv6Zn6wzK0R5QhzxxQc')
+
+@app.route('/')
+def index():
+    return 'Cohere Link API Running ✅'
 
 @app.route('/analyze_url', methods=['POST'])
 def analyze_url():
@@ -28,9 +32,6 @@ def analyze_url():
         article.parse()
         user_text = article.text
 
-        if not user_text.strip():
-            return jsonify({'error': 'No content found'}), 500
-
         prompt = f"Summarize the following news article: {user_text}"
         summary_response = co.generate(model='command', prompt=prompt, max_tokens=200)
         summary = summary_response.generations[0].text.strip()
@@ -39,10 +40,8 @@ def analyze_url():
         polarity = blob.sentiment.polarity
         subjectivity = blob.sentiment.subjectivity
         keywords = list(set(blob.noun_phrases))
-
         doc = nlp(user_text)
         entities = list(set((ent.text, ent.label_) for ent in doc.ents))
-
         emotion_obj = NRCLex(user_text)
         emotions = emotion_obj.raw_emotion_scores
         dominant_emotion = max(emotions, key=emotions.get) if emotions else "neutral"
@@ -75,4 +74,6 @@ def analyze_url():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)

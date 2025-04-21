@@ -12,9 +12,13 @@ app = Flask(__name__)
 CORS(app)
 
 nlp = spacy.load("en_core_web_sm")
-bearer_token = 'YOUR_TWITTER_BEARER_TOKEN'  # Replace with valid one
+bearer_token = 'AAAAAAAAAAAAAAAAAAAAAGWi0gEAAAAA%2BhwNVYW8RoSj%2FhX%2FVQZhZ%2Bg38RM%3DWhnist9ff9XPELHC1l3C7ftRO2F6k62pjyqPF8Pk4Kvn00Xaj2'
 client = tweepy.Client(bearer_token=bearer_token)
 cache = {}
+
+@app.route('/')
+def index():
+    return 'Cohere Twitter API Running ✅'
 
 @app.route('/user_tweets', methods=['POST', 'GET'])
 def get_user_tweets():
@@ -52,10 +56,8 @@ def analyze_tweet(text):
     polarity = blob.sentiment.polarity
     subjectivity = blob.sentiment.subjectivity
     keywords = list(set(blob.noun_phrases))
-
     doc = nlp(text)
     entities = list(set(ent.text for ent in doc.ents))
-
     emotion_obj = NRCLex(text)
     emotions = emotion_obj.raw_emotion_scores
     dominant_emotion = max(emotions, key=emotions.get) if emotions else "neutral"
@@ -85,4 +87,6 @@ def analyze_tweet(text):
     }
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
